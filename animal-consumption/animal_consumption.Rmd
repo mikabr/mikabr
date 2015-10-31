@@ -1,0 +1,107 @@
+---
+title: "Animal Consumption"
+author: "Mika Braginsky"
+output:
+  html_document:
+    highlight: tango
+    theme: spacelab
+---
+
+```{r, echo=FALSE, warning=FALSE}
+library(knitr)
+opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, cache = TRUE)
+```
+
+```{r, cache=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(directlabels)
+library(langcog)
+theme_set(theme_bw())
+```
+
+```{r, include=FALSE}
+raw_meat <- read_excel("mtpcc.xls", sheet = "Boneless")
+
+meat <- raw_meat %>%
+  gather(Animal, Availability, -Year, -Population) %>%
+  arrange(desc(Availability)) %>%
+  mutate(Total = Availability * Population * 1e6,
+         Animal = factor(Animal, levels = unique(Animal)))
+```
+
+```{r, fig.width=11, fig.height=6}
+ggplot(meat, aes(x = Year, y = Total, colour = Animal)) +
+  geom_line() +
+  scale_y_continuous(name = "Availability (pounds)\n",
+                     limits = c(0, 2e10),
+                     breaks = seq(0, 2e10, by = 5e9),
+                     labels = c("0", "5 billion", "10 billion",
+                                "15 billion", "20 billion")) +
+  scale_x_continuous(name = "",
+                     limits = c(min(meat$Year), max(meat$Year) + 8),
+                     breaks = seq(1910, 2010, by = 10)) +
+  geom_dl(aes(label = Animal),
+          method = list(dl.trans(x = x + 0.2), "last.bumpup", cex = 0.8,
+                        fontfamily = "Open Sans")) +
+  scale_colour_solarized(guide = FALSE) +
+  theme(text = element_text(family = "Open Sans"))
+```
+
+```{r, fig.width=11, fig.height=6}
+ggplot(meat, aes(x = Year, y = Availability, colour = Animal)) +
+  geom_line() +
+  scale_y_continuous(name = "Availability per capita (pounds)\n") +
+  scale_x_continuous(name = "",
+                     limits = c(min(meat$Year), max(meat$Year) + 8),
+                     breaks = seq(1910, 2010, by = 10)) +
+  geom_dl(aes(label = Animal),
+          method = list(dl.trans(x = x + 0.2), "last.bumpup", cex = 0.8,
+                        fontfamily = "Open Sans")) +
+  scale_colour_solarized(guide = FALSE) +
+  theme(text = element_text(family = "Open Sans"))
+```
+
+```{r}
+year_plot <- function(year) {
+  ggplot(filter(meat, Year == year),
+         aes(x = Animal, y = Availability, fill = Animal)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    scale_x_discrete(name = "",
+                     limits = rev(levels(meat$Animal))) +
+    scale_y_continuous(name = "Availability per capita (pounds)",
+                       limits = c(0, 90),
+                       breaks = seq(0, 90, by = 10),
+                       expand = c(0, 0)) +
+    scale_fill_solarized(guide = FALSE) +
+    ggtitle("Meat Consumption Over Time") +
+    annotate("text", x = 1.5, y = 82, cex = 10,
+             label = year,
+             family = "Open Sans") +
+    annotate("text", x = -2, y = 5, cex = 3, colour = "darkgray",
+             label = "Creator: Mika Braginsky",
+             family = "Open Sans") +
+    theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          text = element_text(family = "Open Sans"))
+}
+
+gt <- ggplot_gtable(ggplot_build(year_plot(2012)))
+gt$layout$clip[gt$layout$name=="panel"] <- "off"
+grid.draw(gt)
+ggsave("test.png")
+
+
+#ggsave("test.png", year_plot(2012))
+```
+
+```{r}
+for (year in min(meat$Year):max(meat$Year)) {
+  ggsave(sprintf("year_plots/%s.png", year), year_plot(year))
+}
+```
