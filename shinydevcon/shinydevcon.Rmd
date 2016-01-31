@@ -1,0 +1,78 @@
+---
+title: "shinydevcon notes"
+output: 
+  html_document: 
+    theme: spacelab
+    toc: yes
+---
+
+# Reactivity tutorial
+
+> Keep you side effects
+> 
+> Outside of your reactives
+> 
+> Or I will kill you
+> 
+> -- Joe Cheng
+
+[slides](https://rawgit.com/rstudio/reactivity-tutorial/master/slides.html)
+
+Takeaways for Wordbank improvement:
+
+- make sure there are no side-effects in reactives (esp modifying UI)
+    - `reactive()` is for calculating values, without side effects
+    - `observe()` is for performing actions, with side effects
+- probably use reactiveValues for stuff, it's useful
+- use `req()` in reactive to depend on non-null input values (should help reactive UI elements resolve way more reasonably)
+    - THIS WILL FIX EVERYTHING!!!
+- use `shinyReactLog` to investigate input/reactive/output dependencies and app execution flow
+- use `shinyURL` to share apps state by url (e.g. here's the trajectory for _dog_)
+    - lmwtfy: let me wordbank that for you!
+- `shinySignals` might be a thing?
+
+
+# Plot interactivity
+
+[slides](https://gist.github.com/wch/25a1c4ce8fc84022d3e7),
+[more details](http://shiny.rstudio.com/articles/plot-interaction.html)
+
+Get click/dblclick/hover/brush events by coordinates (can use to retrieve nearest points, select/add/delete points, zoom in on plot region).
+
+
+# Gadgets
+
+Differences between a shiny app (for sharing things on the web) and a shiny gadget (for doing things in RStudio):
+
+- call shiny gadget like a function
+- displayed with miniUI elements
+- always returns a value
+
+Example: make scatterplot, select points to exclude from analysis
+
+Furthermore, you can make a gadget into an RStudio add-in, which gives you a modal dialogue with the gadget and then replaces the selection in IDE with the results when done ([like so](https://github.com/hadley/hadladdin) and [more generally so](https://rstudio.github.io/rstudioaddins/)).
+
+Let's you do things that are hard to express with code but want to do reproducibly.
+
+Let's combine with plot interactivity to make an awesome ggplot fiddler!!! :D :D :D
+
+
+# Deploying
+
+Coming soon: seemless reconnection (momentary network blips won't make apps grey out, yaaay). Will be available on both shiny server and shinyapps.io, with a configurable timeout (default 15s).
+
+New product: Rstudio Connect
+
+  - hub for sharing shiny, Rmd, html, plots
+  - push button publish from IDE
+  - dashboard with all published things
+  - specify who can access and publish
+  - Rmarkdown reports aren't just static html, can re-run (manually and scheduled)
+  - easily accesible log files
+  
+This looks absolutely fantastic! [Beta here](beta.rstudioconnect.com).
+
+Parametrized Rmarkdown documents: takes a bunch of arguments, then knit with parameters (this should be great to use for things like local vs. remote wordbank connection).
+
+
+
