@@ -1,14 +1,16 @@
 ---
 title: "shinydevcon notes"
+author: "Mika Braginsky"
 output: 
   html_document: 
+    highlight: tango
     theme: spacelab
     toc: yes
 ---
 
 # Reactivity tutorial
 
-> Keep you side effects
+> Keep your side effects
 > 
 > Outside of your reactives
 > 
@@ -16,7 +18,7 @@ output:
 > 
 > -- Joe Cheng
 
-[slides](https://rawgit.com/rstudio/reactivity-tutorial/master/slides.html)
+[Talk](https://rawgit.com/rstudio/reactivity-tutorial/master/slides.html)
 
 Takeaways for Wordbank improvement:
 
@@ -34,13 +36,15 @@ Takeaways for Wordbank improvement:
 
 # Plot interactivity
 
-[slides](https://gist.github.com/wch/25a1c4ce8fc84022d3e7),
-[more details](http://shiny.rstudio.com/articles/plot-interaction.html)
+[Talk](https://gist.github.com/wch/25a1c4ce8fc84022d3e7),
+[Article](http://shiny.rstudio.com/articles/plot-interaction.html)
 
 Get click/dblclick/hover/brush events by coordinates (can use to retrieve nearest points, select/add/delete points, zoom in on plot region).
 
 
 # Gadgets
+
+[Article about gadgets](http://shiny.rstudio.com/articles/gadgets.html), [article about gadgets UI](http://shiny.rstudio.com/articles/gadget-ui.html)
 
 Differences between a shiny app (for sharing things on the web) and a shiny gadget (for doing things in RStudio):
 
@@ -75,4 +79,129 @@ This looks absolutely fantastic! [Beta here](beta.rstudioconnect.com).
 Parametrized Rmarkdown documents: takes a bunch of arguments, then knit with parameters (this should be great to use for things like local vs. remote wordbank connection).
 
 
+# Modules
 
+[Article](http://shiny.rstudio.com/articles/modules.html)
+
+- Quickly resuse the same code in different apps or multiple times in the same app
+- Divide code into separate modules that can be reasoned about independently
+- Structure
+    - write function that returns shiny UI (wrap multiple elements in `tagList()`)
+    - assign module elements to a unique namespace with `NS()`
+    - write server function
+    - load server module with app's server with `callModule()`
+    - module functions can be defined in:
+        - single file app preamble
+        - file sourced in single file app preamble
+        - in `global.R`
+        - in a file sourced by `global.R`
+        - in a package that the app loads
+    
+Minimal example:    
+
+```{r, eval=FALSE}
+library(shiny)
+
+sliderTextUI <- function(id) {
+  ns <- NS(id)
+  tagList(
+    sliderInput(ns("slider"), "Slide me", 0, 100, 1),
+    textOutput(ns("number"))
+  )
+}
+
+sliderText <- function(input, output, session) {
+  output$number <- renderText({
+    input$slider
+  })
+}
+
+ui <- fluidPage(
+  sliderTextUI("one"),
+  sliderTextUI("two")
+)
+
+server <- function(input, output) {
+  callModule(sliderText, "one")
+  callModule(sliderText, "two")
+}
+
+shinyApp(ui, server)
+```
+
+Use reactive expressions to pass reactive information between functions. Makes modules interact with other app components, not just a set functions.
+
+  - Reactive output:
+    - in server module function, return reactive output as a [list of] reactive expression[s]
+    - `callModule()` returns all the output returns by server module function
+  - Reactive input:
+    - in server module function, wrap input as a reactive expression
+    - pass the reactive expression to the modules as an argument
+    - treat the argument as a reactive expression within the function
+  
+Not a ton of re-use between Wordbank apps, but might be able to factor out language/form/measure selection into a module.
+
+
+# Debugging
+
+[Talk](http://www.github.com/jmcphers/shiny-debug-talk), [Article](http://shiny.rstudio.com/articles/debugging.html)
+
+Debugging:
+
+- Get into debugger: `browser()`
+- Go into showcase mode: `runApp("MyApp", display.mode = "showcase")`
+- Look at reactive log (or `Cmd + F3`)
+```{r, eval = FALSE}
+options(shiny.reactlog = TRUE)
+runApp(...)
+showReactLog()
+```
+- Print things to stderr: `cat("hello world", file = stderr())` (watch out for this changing the reactivity structure and making Heisenbugs)
+- Trace on shinyapps.io `rsconnect::showLogs(streaming = TRUE)`
+- Trace on a shiny server `tail -f /var/log/shiny-server/myapp-*.log`
+- Trace client/server messages `options(shiny.trace = TRUE)`
+
+Error handling:
+
+  - Tracebacks (turn on full with `options(shiny.fullstacktrace = TRUE)`)
+  - Pause on errors with `options(shiny.error = browser)`
+  - Look at JS errors in developer tools in browser
+  - Turn on JS dev mode on OS X in RStudio `defaults write org.rstudio.RStudio WebKitDeveloperExtras -bool true`
+
+
+# UI
+
+[Article about templates](http://shiny.rstudio.com/articles/templates.html)
+
+- Use R function to HTML and Shiny components in `ui.R`
+- Use HTML to write HTML and Shiny components in `index.html`
+- Use HTML to write HTML components and R to write Shiny components with `htmlTemplates`
+    - write template in HTML
+    - insert R code between `{{ }}`
+    - call with htmlTemplate() in ui
+    - add css, scripts, other web dependencies, etc
+    - can define entire webpage or components to include
+
+
+# Dashboards
+
+- `reactiveFileReader` gives a reactive data source for the contents of a file
+- `reactivePoll` gives a reactive data source using a checkFunc (equality check to see if values have changed) and valueFunc (retrieves values)
+- `shinydashboard` package formats UI with specific nice structure
+- `htmlTemplate` can then apply custom look to dashboard elements
+
+
+# Profiling
+
+- Use `RProf` with `profvis` to profile and visualize code execution ([vignettes](http://rpubs.com/wch/123888))
+- Wrap whole shiny app in `profvis` call to profile app (all executed code must be within call)
+
+
+# Data tables
+
+Create a [htmlwidgets](http://www.htmlwidgets.org) to use a JS visualization in R; can then use widget in console, markdown, shiny.
+
+
+# shinyjs
+
+[GitHub](https://github.com/daattali/shinyjs), [slides](https://docs.google.com/presentation/d/1XyBrIA97ZWIkm8NICAyWHo4J9hj_i2-mJmKEq_CR2A8/edit#slide=id.p), [examples](https://gist.github.com/daattali/b95fe2376c9e16f35f15)
