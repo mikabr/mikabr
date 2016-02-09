@@ -1,0 +1,42 @@
+---
+title: "Example Non-Interactive R Markdown Document"
+output: 
+  html_document: 
+    highlight: tango
+    theme: cosmo
+---
+
+```{r setup, message=FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+We got some car data!
+```{r cars}
+head(mtcars)
+```
+
+Let's model cars!
+```{r model}
+mtcars_lm <- lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb,
+                data = mtcars, y = TRUE)
+
+predicted_mtcars <- mtcars %>%
+  mutate(car = rownames(mtcars))
+predicted_mtcars$predicted <- mtcars_lm$fitted.values
+```
+
+Let's look at our model!
+```{r plot, echo = TRUE, fig.width = 6, fig.height = 6}
+paste("r² = ", round(summary(mtcars_lm)$adj.r.squared, 3))
+
+ggplot(predicted_mtcars,
+       aes(x = predicted, y = mpg, label = car)) + 
+  geom_smooth(method = "lm") +
+  geom_jitter() + 
+  scale_x_continuous(name = "Predicted MPG", limits = c(10, 35),
+                     breaks = seq(10, 35, 5)) +
+  scale_y_continuous(name = "MPG", limits = c(10, 35),
+                     breaks = seq(10, 35, 5)) +
+  theme_bw()
+```
